@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -33,12 +32,16 @@ const (
 	CONFIG_FILE = "config"
 )
 
-func main() {
-	logrus.SetFormatter(new(logrus.JSONFormatter))
+func init() {
+	logrus.SetFormatter(&logrus.TextFormatter{})
+	logrus.SetOutput(os.Stdout)
+	logrus.SetLevel(logrus.InfoLevel)
+}
 
+func main() {
 	cfg, err := config.New(CONFIG_DIR, CONFIG_FILE)
 	if err != nil {
-		log.Fatal(err)
+		logrus.Fatal(err)
 	}
 
 	db, err := database.New(database.Config{

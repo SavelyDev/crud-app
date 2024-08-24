@@ -7,6 +7,7 @@ import (
 
 	"github.com/SavelyDev/crud-app/pkg/httputil"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
 const (
@@ -48,4 +49,11 @@ func getUserId(c *gin.Context) (int, error) {
 	}
 
 	return userIdInt, nil
+}
+
+func (h *Handler) loggingMiddleware(c *gin.Context) {
+	logrus.WithFields(logrus.Fields{
+		"method": c.Request.Method,
+		"uri":    c.Request.URL,
+	}).Info()
 }

@@ -70,7 +70,7 @@ definitions:
       message:
         type: string
     type: object
-host: localhost:80
+host: localhost:8080
 info:
   contact: {}
   title: CRUD-APP API

@@ -47,6 +47,7 @@ func NewHandler(auth Auth, todoList TodoList, todoItem TodoItem) *Handler {
 
 func (h *Handler) InitRouter() *gin.Engine {
 	router := gin.New()
+	router.Use(h.loggingMiddleware)
 
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
