@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -10,9 +11,9 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func NewServer(port string, handler http.Handler) *Server {
+func NewServer(port int, handler http.Handler) *Server {
 	return &Server{httpServer: &http.Server{
-		Addr:         ":" + port,
+		Addr:         fmt.Sprintf(":%d", port),
 		Handler:      handler,
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,

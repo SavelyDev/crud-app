@@ -7,18 +7,18 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type ConfigDB struct {
+type Config struct {
 	Host     string
-	Port     string
+	Port     int
 	Username string
 	Password string
-	DBName   string
+	Name     string
 	SSLMode  string
 }
 
-func NewDB(cfg ConfigDB) (*sql.DB, error) {
-	connStr := fmt.Sprintf("host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
-		cfg.Host, cfg.Port, cfg.Username, cfg.DBName, cfg.Password, cfg.SSLMode)
+func New(cfg Config) (*sql.DB, error) {
+	connStr := fmt.Sprintf("host=%s port=%d user=%s dbname=%s password=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.Username, cfg.Name, cfg.Password, cfg.SSLMode)
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {

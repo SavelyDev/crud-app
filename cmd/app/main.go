@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -9,43 +10,44 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/SavelyDev/crud-app/internal/config"
 	"github.com/SavelyDev/crud-app/internal/repository/psql"
 	"github.com/SavelyDev/crud-app/internal/service"
 	"github.com/SavelyDev/crud-app/internal/transport/rest"
 	"github.com/SavelyDev/crud-app/pkg/database"
 	"github.com/SavelyDev/crud-app/pkg/server"
-	"github.com/spf13/viper"
-	"github.com/subosito/gotenv"
 )
 
 // @title CRUD-APP API
 // @version 1.0
 
-// @host localhost:80
+// @host localhost:8080
 // @BasePath /
 
 // @securityDefinitions.apikey ApiKeyAuth
 // @in header
 // @name Authorization
 
+const (
+	CONFIG_DIR  = "configs"
+	CONFIG_FILE = "config"
+)
+
 func main() {
 	logrus.SetFormatter(new(logrus.JSONFormatter))
 
-	if err := InitConfig(); err != nil {
-		logrus.Fatal(err)
+	cfg, err := config.New(CONFIG_DIR, CONFIG_FILE)
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	if err := gotenv.Load(); err != nil {
-		logrus.Fatal(err)
-	}
-
-	db, err := database.NewDB(database.ConfigDB{
-		Host:     viper.GetString("db.host"),
-		Port:     viper.GetString("db.port"),
-		Username: viper.GetString("db.username"),
-		DBName:   viper.GetString("db.dbname"),
-		SSLMode:  viper.GetString("db.sslmode"),
-		Password: os.Getenv("DB_PASSWORD"),
+	db, err := database.New(database.Config{
+		Host:     cfg.DB.Host,
+		Port:     cfg.DB.Port,
+		Username: cfg.DB.Username,
+		Name:     cfg.DB.Name,
+		SSLMode:  cfg.DB.SSLMode,
+		Password: cfg.DB.Password,
 	})
 	if err != nil {
 		logrus.Fatal(err)
@@ -62,7 +64,7 @@ func main() {
 
 	hand := rest.NewHandler(authService, todoListService, todoItemService)
 
-	srv := server.NewServer(viper.GetString("server.port"), hand.InitRouter())
+	srv := server.NewServer(cfg.Server.Port, hand.InitRouter())
 	go func() {
 		if err := srv.Run(); err != nil {
 			logrus.Fatal(err)
@@ -79,11 +81,4 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		logrus.Fatal(err)
 	}
-}
-
-func InitConfig() error {
-	viper.AddConfigPath("configs")
-	viper.SetConfigName("config")
-
-	return viper.ReadInConfig()
 }
