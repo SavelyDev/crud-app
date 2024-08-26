@@ -14,6 +14,7 @@ import (
 	"github.com/SavelyDev/crud-app/internal/service"
 	"github.com/SavelyDev/crud-app/internal/transport/rest"
 	"github.com/SavelyDev/crud-app/pkg/database"
+	"github.com/SavelyDev/crud-app/pkg/hash"
 	"github.com/SavelyDev/crud-app/pkg/server"
 )
 
@@ -28,7 +29,7 @@ import (
 // @name Authorization
 
 const (
-	CONFIG_DIR  = "configs"
+	CONFIG_DIR  = "../../configs"
 	CONFIG_FILE = "config"
 )
 
@@ -57,11 +58,13 @@ func main() {
 	}
 	defer db.Close()
 
+	hasher := hash.NewSHA1Hasher(cfg.Hash.Slat)
+
 	authRepo := psql.NewAuthRepo(db)
 	todoListRepo := psql.NewTodoListRepo(db)
 	todoItemRepo := psql.NewTodoItemRepo(db)
 
-	authService := service.NewAuthService(authRepo)
+	authService := service.NewAuthService(authRepo, hasher, cfg.Auth.TokenTTL, cfg.Auth.Secret)
 	todoListService := service.NewTodoListService(todoListRepo)
 	todoItemService := service.NewTodoItemService(todoItemRepo, todoListRepo)
 

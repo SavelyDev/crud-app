@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/SavelyDev/crud-app/internal/domain"
-	"github.com/SavelyDev/crud-app/pkg/hash"
 	"github.com/golang-jwt/jwt"
 )
 
@@ -15,24 +14,23 @@ type AuthRepo interface {
 	GetUserId(email, password string) (int, error)
 }
 
-const (
-	salt       = "rfertertert"
-	signingKey = "wqeqweqwe"
-	tokenTTL   = 12 * time.Hour
-)
-
-type AuthService struct {
-	repo AuthRepo
+type PasswordHash interface {
+	Hash(password string) (string, error)
 }
 
-func NewAuthService(repo AuthRepo) *AuthService {
-	return &AuthService{repo: repo}
+type AuthService struct {
+	repo       AuthRepo
+	hasher     PasswordHash
+	tokenTTL   time.Duration
+	signingKey []byte
+}
+
+func NewAuthService(repo AuthRepo, hasher PasswordHash, tokenTTL time.Duration, signingKey []byte) *AuthService {
+	return &AuthService{repo: repo, hasher: hasher, tokenTTL: tokenTTL, signingKey: signingKey}
 }
 
 func (s *AuthService) CreateUser(user domain.User) (int, error) {
-	hash := hash.NewSHA1Hasher(salt)
-
-	passwordHash, err := hash.Hash(user.PasswordHash)
+	passwordHash, err := s.hasher.Hash(user.PasswordHash)
 	if err != nil {
 		return 0, err
 	}
@@ -43,9 +41,7 @@ func (s *AuthService) CreateUser(user domain.User) (int, error) {
 }
 
 func (s *AuthService) GenerateToken(email, password string) (string, error) {
-	hash := hash.NewSHA1Hasher(salt)
-
-	passwordHash, err := hash.Hash(password)
+	passwordHash, err := s.hasher.Hash(password)
 	if err != nil {
 		return "", err
 	}
@@ -57,19 +53,19 @@ func (s *AuthService) GenerateToken(email, password string) (string, error) {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.StandardClaims{
 		Subject:   strconv.Itoa(userId),
-		ExpiresAt: time.Now().Add(tokenTTL).Unix(),
+		ExpiresAt: time.Now().Add(s.tokenTTL).Unix(),
 		IssuedAt:  time.Now().Unix()})
 
-	return token.SignedString([]byte(signingKey))
+	return token.SignedString(s.signingKey)
 }
 
 func (s *AuthService) ParseToken(accesToken string) (int, error) {
-	token, err := jwt.ParseWithClaims(accesToken, &jwt.StandardClaims{}, func(accesToken *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(accesToken, func(accesToken *jwt.Token) (interface{}, error) {
 		if _, ok := accesToken.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("invalid signing method")
 		}
 
-		return []byte(signingKey), nil
+		return s.signingKey, nil
 	})
 	if err != nil {
 		return 0, err

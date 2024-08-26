@@ -15,26 +15,46 @@ const (
 	userCtx             = "userId"
 )
 
+func (h *Handler) loggingMiddleware(c *gin.Context) {
+	logrus.WithFields(logrus.Fields{
+		"method": c.Request.Method,
+		"uri":    c.Request.URL,
+	}).Info()
+}
+
 func (h *Handler) userIdentity(c *gin.Context) {
-	header := c.GetHeader(authorizationHeader)
-	if header == "" {
-		httputil.NewError(c, http.StatusUnauthorized, errors.New("empty auth header"))
+	token, err := getTokenFromRequest(c)
+	if err != nil {
+		httputil.NewError(c, http.StatusUnauthorized, err)
 		return
 	}
 
-	headerParts := strings.Split(header, " ")
-	if len(headerParts) != 2 {
-		httputil.NewError(c, http.StatusUnauthorized, errors.New("invalid auth header"))
-		return
-	}
-
-	userId, err := h.AuthService.ParseToken(headerParts[1])
+	userId, err := h.AuthService.ParseToken(token)
 	if err != nil {
 		httputil.NewError(c, http.StatusUnauthorized, err)
 		return
 	}
 
 	c.Set(userCtx, userId)
+}
+
+func getTokenFromRequest(c *gin.Context) (string, error) {
+	header := c.GetHeader(authorizationHeader)
+	if header == "" {
+		return "", errors.New("empty auth header")
+	}
+
+	headerParts := strings.Split(header, " ")
+
+	if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+		return "", errors.New("invalid auth header")
+	}
+
+	if len(headerParts[1]) == 0 {
+		return "", errors.New("token is empty")
+	}
+
+	return headerParts[1], nil
 }
 
 func getUserId(c *gin.Context) (int, error) {
@@ -49,11 +69,4 @@ func getUserId(c *gin.Context) (int, error) {
 	}
 
 	return userIdInt, nil
-}
-
-func (h *Handler) loggingMiddleware(c *gin.Context) {
-	logrus.WithFields(logrus.Fields{
-		"method": c.Request.Method,
-		"uri":    c.Request.URL,
-	}).Info()
 }
