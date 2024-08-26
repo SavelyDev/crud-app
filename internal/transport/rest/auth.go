@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/SavelyDev/crud-app/internal/domain"
@@ -26,7 +27,7 @@ func (h *Handler) signUp(c *gin.Context) {
 		return
 	}
 
-	id, err := h.AuthService.CreateUser(user)
+	id, err := h.AuthService.SignUp(user)
 	if err != nil {
 		httputil.NewError(c, http.StatusInternalServerError, err)
 		return
@@ -41,10 +42,10 @@ func (h *Handler) signUp(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param credentials body domain.SignInInput true "Sign in credentials"
-// @Success 200 {string} string "token"
+// @Success 200 {string} string "acces_token"
 // @Failure 400 {object} httputil.HTTPError
 // @Failure 500 {object} httputil.HTTPError
-// @Router /auth/sign-in [post]
+// @Router /auth/sign-in [get]
 func (h *Handler) signIn(c *gin.Context) {
 	var credentials domain.SignInInput
 
@@ -53,11 +54,31 @@ func (h *Handler) signIn(c *gin.Context) {
 		return
 	}
 
-	token, err := h.AuthService.GenerateToken(credentials.Email, credentials.PasswordHash)
+	accesToken, refreshToken, err := h.AuthService.SignIn(credentials)
 	if err != nil {
 		httputil.NewError(c, http.StatusInternalServerError, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"token": token})
+	c.Header("Set-Cookie", fmt.Sprintf("refresh-token=%s; HttpOnly", refreshToken))
+
+	c.JSON(http.StatusOK, gin.H{"acces_token": accesToken})
+}
+
+func (h *Handler) refresh(c *gin.Context) {
+	token, err := c.Cookie("refresh-token")
+	if err != nil {
+		httputil.NewError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	accesToken, refreshToken, err := h.AuthService.RefreshToken(token)
+	if err != nil {
+		httputil.NewError(c, http.StatusInternalServerError, err)
+		return
+	}
+
+	c.Header("Set-Cookie", fmt.Sprintf("refresh-token=%s; HttpOnly", refreshToken))
+
+	c.JSON(http.StatusOK, gin.H{"acces_token": accesToken})
 }

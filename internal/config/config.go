@@ -51,7 +51,7 @@ func New(dirname, filename string) (*Config, error) {
 		return nil, err
 	}
 
-	if err := godotenv.Load("../../.env"); err != nil {
+	if err := godotenv.Load(); err != nil {
 		return nil, err
 	}
 

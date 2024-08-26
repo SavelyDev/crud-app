@@ -11,6 +11,6 @@ type User struct {
 }
 
 type SignInInput struct {
-	Email        string `json:"email" binding:"required"`
-	PasswordHash string `json:"password_hash" binding:"required"`
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }

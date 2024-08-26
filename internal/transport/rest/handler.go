@@ -11,9 +11,10 @@ import (
 )
 
 type Auth interface {
-	CreateUser(user domain.User) (int, error)
-	GenerateToken(email, password string) (string, error)
+	SignUp(user domain.User) (int, error)
+	SignIn(user domain.SignInInput) (string, string, error)
 	ParseToken(accesToken string) (int, error)
+	RefreshToken(refreshToken string) (string, string, error)
 }
 
 type TodoList interface {
@@ -54,7 +55,8 @@ func (h *Handler) InitRouter() *gin.Engine {
 	auth := router.Group("/auth")
 	{
 		auth.POST("/sign-up", h.signUp)
-		auth.POST("/sign-in", h.signIn)
+		auth.GET("/sign-in", h.signIn)
+		auth.GET("/refresh", h.refresh)
 	}
 
 	api := router.Group("/api", h.userIdentity)

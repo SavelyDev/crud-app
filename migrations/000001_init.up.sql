@@ -29,10 +29,17 @@ CREATE TABLE todo_items
     done        boolean      not null default false
 );
 
-
 CREATE TABLE lists_items
 (
     id      serial                                           not null unique,
     item_id int references todo_items (id) on delete cascade not null,
     list_id int references todo_lists (id) on delete cascade not null
+);
+
+CREATE TABLE refresh_tokens
+(
+    id           serial                                           not null unique,
+    user_id      int references users (id) on delete cascade      not null,
+    token        varchar(255)                                     not null,
+    expires_at   timestamp                                        not null
 );
